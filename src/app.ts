@@ -77,9 +77,9 @@ app.post('/add/', (req, res) => {
 
 app.put('/update/:idProduct', (req, res) => {    
     const listprops: ListProps = req.body;
-    const { idProduct, image, name, brance, price } = listprops
+    const { image, name, brance, price } = listprops
     for (let i = 0; i < arr.length; i++) {
-        if (arr[i].id == idProduct) {
+        if (arr[i].id == req.params.idProduct) {
             arr[i].image = image;
             arr[i].name = name;
             arr[i].brance = brance;
@@ -139,7 +139,7 @@ app.post('/checkout/delivery', (req, res) => {
     orderData = req.body.dataOrder;
     if (orderData != null) {
         orders.push(orderData)
-    }    
+    }
     res.json(orders);
 })
 

@@ -1,20 +1,11 @@
-import { Cart, Order } from "./Order";
-
+import { Order } from "./Order";
 export interface ListProps {
     page: number;
     search: string;
-    pagesize: number;
-    idProduct: string;
+    pagesize: number;    
     image: string;
     name: string;
     brance: string;
     price: number;
-    // idOrder: string;
-    // fullname: string;
-    // phonenumber: number;
-    // email: string;
-    // address: string;
-    // postcode: string;
-    // cart: Cart[];
     dataOrder: Order;
 }
