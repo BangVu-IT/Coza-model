@@ -2,7 +2,7 @@ import { Order } from "./Order";
 export interface ListProps {
     page: number;
     search: string;
-    pagesize: number;    
+    pagesize: number;      
     image: string;
     name: string;
     brance: string;
