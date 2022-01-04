@@ -1,20 +1,14 @@
-// export interface Cart {
-//     cart_id: string;
-//     image: string;
-//     name: string;    
-//     price: number;
-//     quantily: number;
-// }
-export interface Order {
-    createat: number;
-    fullname: string;
-    phonenumber: number;
-    email: string;
-    address: string;
-    postcode: string;
-    cart_id: string;
-    image: string;
-    name: string;    
-    price: number;
-    quantity: number;
+import { OrderProduct } from "./OrderProduct";
+import { User } from "./User";
+
+
+export default interface Order {
+    id: string;
+    userId: string;
+    createdAt: string;
+    isTemporary: boolean;
+}
+export interface OrderWithDetail extends Order {
+    orderProducts: OrderProduct[];
+    user: User;
 }

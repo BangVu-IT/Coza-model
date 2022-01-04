@@ -1,8 +1,10 @@
 import express, { Request, Response } from 'express'
 import { ListProps } from './model/ListProps'
-import { Order } from './model/Order';
+import Order, { OrderWithDetail } from './model/Order';
 import { Product } from './model/Product'
 import { User } from './model/User';
+import { QueryResult } from 'pg';
+import { Cart } from './model/Cart';
 
 const app = express()
 var cors = require('cors')
@@ -32,10 +34,12 @@ async function clientProduct() {
 async function getListCart() {
     const client = new Client(credentials);
     await client.connect();
-    const cartProduct = await client.query(`select order_product.order_id, order_product.cart_id, product.image, product."name", product.brance, product.price, order_product.quantity
+    const cartProduct = await client.query(`select order_product.order_id, order_product.cart_id, product.image, product."name",
+    product.brand, product.price, order_product.quantity
     from order_product join 
     product on order_product.id = product.id join
-    "order" on order_product.order_id = "order".order_id where "order".user_id = '1' and "order".istemporary = false`);
+    "order" on order_product.order_id = "order".order_id where "order".user_id = '1' and "order".istemporary = false
+    order by order_product.cart_id`);
     await client.end();
     return cartProduct.rows;
 }
@@ -67,18 +71,90 @@ async function getIncreaseQuantity(id: string) {
     await client.end();
 }
 
-async function getListOrder() {
+async function getListOrder(page: number, pageSize: number) {
     const client = new Client(credentials);
-    await client.connect();
-    const cartProduct = await client.query(`select "order".createat, "user".fullname, "user".phonenumber, "user".email, "user".address, "user".postcode, 
-    order_product.cart_id, product.image, product."name", order_product.price, order_product.quantity
-    from "user" join 
-    "order" on "user".user_id = "order".user_id join
+    await client.connect();    
+    const cartProduct: QueryResult = await client.query(`select * from "user" join "order" on "user".user_id = "order".user_id join
     order_product on order_product.order_id = "order".order_id join 
-    product on order_product.id = product.id 
-    where "order".user_id = '1'`);
+    product on order_product.id = product.id
+    where "order".order_id in
+    (select order_id from "order" where
+    "order".user_id = '1' and "order".istemporary = true group by "order".order_id limit ${pageSize} offset (${page} * ${pageSize}) - ${pageSize})`);
+    const pageNumberOrder = await client.query(`select "order".order_id from "order" where "order".user_id = '1' and "order".istemporary = true group by order_id`);
     await client.end();
-    return cartProduct.rows;
+
+    const listOrdersProduct = cartProduct.rows;
+    const pageNumber = pageNumberOrder.rows.length
+    let listOrders: OrderWithDetail[] = [];
+    let idOrder: string[] = [];
+    let pageNumbers = [];
+
+    listOrdersProduct.map(item => idOrder.push(item.order_id));
+
+    idOrder = Array.from(new Set(idOrder));
+
+    idOrder.map(order_id => {
+        const order: OrderWithDetail = {
+            id: order_id,
+            userId: "1",
+            createdAt: "",
+            isTemporary: false,
+            orderProducts: [],
+            user: {
+                id: "",
+                fullName: "",
+                phoneNumber: 113,
+                email: "",
+                address: "",
+                postcode: ""
+            }
+        }
+
+        listOrdersProduct.map(orderItem => {
+            if (orderItem.order_id == order_id) {
+                order.createdAt = orderItem.createat,
+                order.isTemporary = orderItem.istemporary,
+                order.orderProducts.push({
+                    id: orderItem.cart_id,
+                    orderId: orderItem.order_id,
+                    idProduct: orderItem.id,
+                    quantity: orderItem.quantity,
+                    price: orderItem.price,
+                    product: {
+                        id: orderItem.id,
+                        image: orderItem.image,
+                        name: orderItem.name,
+                        brand: orderItem.brand,
+                        price: orderItem.price
+                    }
+                });
+                order.user = {
+                    id: orderItem.user_id,
+                    fullName: orderItem.fullname,
+                    phoneNumber: orderItem.phonenumber,
+                    email: orderItem.email,
+                    address: orderItem.address,
+                    postcode: orderItem.postcode
+                }
+            }
+        });        
+        listOrders.push(order)
+    })    
+
+    let count = 0;
+
+    for (let i = 0; i < pageNumber; i++) {
+        if ((i + 1) % pageSize == 0) {
+            count += 1;
+            pageNumbers.push(count)
+        }
+    }
+    if (pageNumber % pageSize != 0) {
+        count += 1;
+        pageNumbers.push(count)
+    }
+    
+    return {listOrders, pageNumbers};
 }
 
 // get data warehouse page
@@ -122,6 +198,7 @@ app.post('/products/', async (req, res) => {
         count += 1;
         arrPageNumber.push(count)
     }
+
     res.json({ arrProduct, arrPageNumber });
 })
 
@@ -138,19 +215,19 @@ app.delete('/delete/:idProduct', async (req, res) => {
 // add product
 app.post('/add/', async (req, res) => {
     const listprops: ListProps = req.body;
-    const { image, name, brance, price } = listprops
+    const { image, name, brand, price } = listprops
     let newProduct = {
         id: uuidv4(),
         image: image,
         name: name,
-        brance: brance,
+        brand: brand,
         price: price
     }
 
     const client = new Client(credentials);
     await client.connect();
-    await client.query(`INSERT INTO public.product (id, image, name, brance, price)
-    VALUES('${newProduct.id}', '${newProduct.image}', '${newProduct.name}', '${newProduct.brance}', ${newProduct.price})`);
+    await client.query(`INSERT INTO public.product (id, image, name, brand, price)
+    VALUES('${newProduct.id}', '${newProduct.image}', '${newProduct.name}', '${newProduct.brand}', ${newProduct.price})`);
     await client.end();
 
     const clientResult: Product[] = await clientProduct();
@@ -161,12 +238,12 @@ app.post('/add/', async (req, res) => {
 app.put('/update/:idProduct', async (req, res) => {
     let id = req.params.idProduct;
     const listprops: ListProps = req.body;
-    const { image, name, brance, price } = listprops;
+    const { image, name, brand, price } = listprops;
 
     const client = new Client(credentials);
     await client.connect();
     await client.query(`UPDATE public.product
-    SET image='${image}', "name"='${name}', brance='${brance}', price=${price}
+    SET image='${image}', "name"='${name}', brand='${brand}', price=${price}
     WHERE id='${id}'`);
     await client.end();
 
@@ -201,7 +278,7 @@ app.get('/product/:idProduct', async (req, res) => {
     res.json(itemProduct);
 })
 
-app.post('/checkout/delivery', async (req, res) => {
+app.post('/checkout/delivery', async (req, res) => {    
     let userInformation: User;
     userInformation = req.body.dataOrder;
     const client = new Client(credentials);
@@ -210,62 +287,76 @@ app.post('/checkout/delivery', async (req, res) => {
     SET fullname='${userInformation.fullName}', phonenumber='${userInformation.phoneNumber}', email='${userInformation.email}', address='${userInformation.address}', postcode='${userInformation.postcode}'
     WHERE user_id='1';`);
     await client.query(`UPDATE public."order"
-    SET istemporary=true 
-    WHERE order_id='${req.body.idOrder}'`);
+    SET istemporary=true WHERE order_id='${req.body.idOrder}'`);
     await client.end();
 })
 
-app.get('/orders', async (req, res) => {
-    const listOrders: Order[] = await getListOrder();
-    res.json(listOrders);
+app.post('/orders', async (req, res) => {
+    const listprops: ListProps = req.body;
+    const { page, pagesize } = listprops
+    const listOrdersProduct = await getListOrder(page, pagesize);
+    res.json(listOrdersProduct);
 })
 
 app.post('/carts/:idProduct', async (req, res) => {
-
     const client = new Client(credentials);
     await client.connect();
-    const checkEmpty = await client.query(`select order_id from "order" where user_id = '1' and istemporary = false`);
+    const checkEmpty = await client.query(`select order_id from "order" where user_id = '1' and istemporary = false`);    
 
     if (checkEmpty.rows[0] !== undefined) {
         await client.query(`Do
         $$
-        begin  	
-            if exists(select * from order_product op where id = '${req.params.idProduct}') then
+        begin
+            if exists(select * from order_product join "order" on "order".order_id = order_product.order_id
+            where id = '${req.params.idProduct}' and "order".istemporary = false) then
                 UPDATE public.order_product
-                SET quantity = quantity + ${req.body.quantity} where id = '${req.params.idProduct}';
+                SET quantity = quantity + ${req.body.quantity} where id = '${req.params.idProduct}' and order_id = '${checkEmpty.rows[0].order_id}';
             else
                 INSERT INTO public.order_product (cart_id, order_id, id, quantity, price)
                 VALUES('${uuidv4()}' ,'${checkEmpty.rows[0].order_id}', '${req.params.idProduct}', ${req.body.quantity}, ${req.body.price});
             end if;
         end;
-        $$`);
+        $$`);        
     } else {
         let idOrder = uuidv4();
         await client.query(`INSERT INTO public."order" (order_id, user_id, createat, istemporary)
-        VALUES('${idOrder}', '1', '2021-1-1', false);`);
+        VALUES('${idOrder}', '1', '${new Date()}', false);`);
         await client.query(`INSERT INTO public.order_product (cart_id, order_id, id, quantity, price)
-        VALUES('${uuidv4()}' ,'${idOrder}', '${req.params.idProduct}', ${req.body.quantity}, ${req.body.price})`);
+        VALUES('${uuidv4()}' ,'${idOrder}', '${req.params.idProduct}', ${req.body.quantity}, ${req.body.price})`);        
     }
+    await client.end();
 
+    return res.json([]);
 })
 
 app.get('/checkout/cart', async (req, res) => {
     const listCarts: Cart[] = await getListCart();
-    res.json(listCarts)
+    res.json(listCarts);
 })
 
 app.get('/cart/reduction/:idCart', async (req, res) => {
-    await getReductionQuantity(req.params.idCart);    
+    await getReductionQuantity(req.params.idCart);
 
     const listCarts: Cart[] = await getListCart();
-    res.json(listCarts)
+    res.json(listCarts);
 })
 
 app.get('/cart/increase/:idCart', async (req, res) => {
-    await getIncreaseQuantity(req.params.idCart);    
+    await getIncreaseQuantity(req.params.idCart);
 
     const listCarts: Cart[] = await getListCart();
-    res.json(listCarts)
+    res.json(listCarts);
+})
+
+app.delete('/cart/item/:cart_id', async (req, res) => {
+    const client = new Client(credentials);
+    await client.connect();
+    await client.query(`DELETE FROM public.order_product
+    WHERE cart_id='${req.params.cart_id}'`);
+    await client.end();
+
+    const listCarts: Cart[] = await getListCart();
+    res.json(listCarts);
 })
 
 app.listen(port, () => {
