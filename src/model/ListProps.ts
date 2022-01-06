@@ -9,4 +9,6 @@ export interface ListProps {
     brand: string;
     price: number;
     dataOrder: Order;
+    userName: string;
+    passWord: string;
 }
