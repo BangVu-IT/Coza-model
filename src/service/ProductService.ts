@@ -13,7 +13,7 @@ class ProductService {
 
     getProductListService = async (req: Request, res: Response) => {
         const listprops: ListProps = req.body;
-        const { page, search, pagesize } = listprops
+        const { page, search, pagesize } = listprops;
         let products, pageNumber;
         if (search) {
             products = await pool.query(`SELECT * FROM product WHERE name ILIKE '${search}%' limit ${pagesize} offset (${page} * ${pagesize}) - ${pagesize}`);
@@ -44,7 +44,7 @@ class ProductService {
     }
 
     addProductService = async (req: Request, res: Response) => {
-        const listprops: ListProps = req.body;
+        const listprops: ListProps = req.body.product;
         const { image, name, brand, price } = listprops
         let newProduct = {
             id: uuidv4(),
@@ -63,12 +63,12 @@ class ProductService {
 
     updateProductService = async (req: Request, res: Response) => {
         let id = req.params.idProduct;
-        const listprops: ListProps = req.body;
+        const listprops: ListProps = req.body.product;
         const { image, name, brand, price } = listprops;
         await pool.query(`UPDATE public.product
         SET image='${image}', "name"='${name}', brand='${brand}', price=${price}
         WHERE id='${id}'`);
-    }    
+    }
 
     getProductDetailsService = async (req: Request, res: Response) => {
         let idProduct = req.params.idProduct;
@@ -231,17 +231,22 @@ class ProductService {
         return { listOrders, pageNumbers };
     }
 
+    getMeService = async (userId: string) => {
+        const userInfo = await pool.query(`select * from "user" where user_id = '${userId}'`);
+        return userInfo.rows[0];
+    }
+
     userLoginService = async (req: Request, res: Response) => {
         const listprops: ListProps = req.body;
         const { userName, passWord } = listprops        
         const checkAccount = await pool.query(`select user_id from "user" where "userName" = '${userName}' and "passWord" = '${passWord}'`);
 
         if (checkAccount.rows[0] !== undefined) {
-            const token = jwt.sign(checkAccount.rows[0], process.env.SECRET_TOKEN, { expiresIn: '30s' });
-            res.header("Authorization", token).json(token);
+            const token = jwt.sign(checkAccount.rows[0], process.env.SECRET_TOKEN, { expiresIn: '30s' });        
+            res.header("Authorization", token).send(token);
         } else {
             res.status(401).send();
-        }        
+        }
     }
 
 }

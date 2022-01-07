@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'express';
+import express, { Request, response, Response } from 'express';
 import { Router } from "express";
 import { productController } from "../controller/ProductController";
 
@@ -7,10 +7,9 @@ const jwt = require("jsonwebtoken");
 
 const verify = (req: Request, res: Response, next: any) => {    
     const token = req.header('Authorization');    
-    
-    if (!token) return res.status(403).json("");
-    try {
-        jwt.verify(token, process.env.SECRET_TOKEN)        
+    if (!token) return res.status(403).json("Vui lòng đăng nhập để sử dụng chức năng này!");
+    try {        
+        jwt.verify(token, process.env.SECRET_TOKEN);        
         next()
     } catch (error) {
         res.status(401).send('Token không hợp lệ')
@@ -55,5 +54,7 @@ router.post('/orders', verify, productController.getListOrder)
 
 // user login
 router.post('/users/login', productController.userLogin)
+
+router.get('/get-me', productController.getMe)
 
 export default router;
