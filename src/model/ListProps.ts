@@ -11,4 +11,5 @@ export interface ListProps {
     dataOrder: Order;
     userName: string;
     passWord: string;
+    userId: string;
 }

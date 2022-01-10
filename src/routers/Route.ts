@@ -17,37 +17,37 @@ const verify = (req: Request, res: Response, next: any) => {
 }
 
 // get product list
-router.post('/products', productController.getProductList)
+router.post('/products',verify, productController.getProductList)
 
 // add product to warehouse
-router.post('/add/', productController.addProduct)
+router.post('/add/',verify, productController.addProduct)
 
 // remove product from warehouse
-router.delete('/delete/:idProduct', productController.removeProduct)
+router.delete('/delete/:idProduct',verify, productController.removeProduct)
 
 // update product from warehouse
-router.put('/update/:idProduct', productController.updateProduct)
+router.put('/update/:idProduct',verify, productController.updateProduct)
 
 // get product details
-router.get('/product/:idProduct', productController.getProductDetails)
+router.get('/product/:idProduct',verify, productController.getProductDetails)
 
 // get cart list
-router.get('/checkout/cart', productController.getListCart)
+router.post('/checkout/cart', verify, productController.getListCart)
 
 // add product to cart
-router.post('/carts/:idProduct', productController.addProductToCart)
+router.post('/carts/:idProduct', verify, productController.addProductToCart)
 
 // reduce the number of products from the cart
-router.get('/cart/reduction/:idCart', productController.setReductionQuantity)
+router.get('/cart/reduction/:idCart', verify, productController.setReductionQuantity)
 
 // increase the number of products from the cart
-router.get('/cart/increase/:idCart', productController.setIncreaseQuantity)
+router.get('/cart/increase/:idCart', verify, productController.setIncreaseQuantity)
 
 // remove product from cart
-router.delete('/cart/item/:idCart', productController.deleteCartItems)
+router.delete('/cart/item/:idCart', verify, productController.deleteCartItems)
 
 // receive order information
-router.post('/checkout/delivery', productController.setOrderInformation)
+router.post('/checkout/delivery',verify, productController.setOrderInformation)
 
 // get order list
 router.post('/orders', verify, productController.getListOrder)
@@ -55,6 +55,6 @@ router.post('/orders', verify, productController.getListOrder)
 // user login
 router.post('/users/login', productController.userLogin)
 
-router.get('/get-me', productController.getMe)
+router.get('/get-me',verify, productController.getMe)
 
 export default router;

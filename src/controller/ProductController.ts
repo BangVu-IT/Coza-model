@@ -7,21 +7,30 @@ const jwt = require("jsonwebtoken");
 class ProductController {
 
     getProductList = async (req: Request, res: Response) => {
-        await productService.getProductListService(req, res);
+        const listprops: ListProps = req.body;
+        const { page, search, pagesize } = listprops;
+        res.json(await productService.getProductListService(page, search, pagesize));
     }
 
     addProduct = async (req: Request, res: Response) => {
+        const listprops: ListProps = req.body;
+        const { page, search, pagesize } = listprops;
         await productService.addProductService(req, res);
-        res.json(await productService.getProductListService(req, res));
+        res.json(await productService.getProductListService(page, search, pagesize));
     }
 
     removeProduct = async (req: Request, res: Response) => {
-        await productService.removeProductService(req, res);
+        const listprops: ListProps = req.body;
+        const { page, search, pagesize } = listprops;
+        await productService.removeProductService(req.params.idProduct);
+        res.json(await productService.getProductListService(page, search, pagesize));
     }
 
     updateProduct = async (req: Request, res: Response) => {
+        const listprops: ListProps = req.body;
+        const { page, search, pagesize } = listprops;
         await productService.updateProductService(req, res);
-        res.json(await productService.getProductListService(req, res));
+        res.json(await productService.getProductListService(page, search, pagesize));
     }
 
     getProductDetails = async (req: Request, res: Response) => {
@@ -29,7 +38,9 @@ class ProductController {
     }
 
     getListCart = async (req: Request, res: Response) => {
-        res.json(await productService.getListCartService());
+        const listprops: ListProps = req.body;
+        const { userId } = listprops
+        res.json(await productService.getListCartService(userId));
     }
 
     addProductToCart = async (req: Request, res: Response) => {
@@ -37,18 +48,24 @@ class ProductController {
     }
 
     setReductionQuantity = async (req: Request, res: Response) => {
+        const listprops: ListProps = req.body;
+        const { userId } = listprops
         await productService.setReductionQuantityService(req.params.idCart);
-        res.json(await productService.getListCartService());
+        res.json(await productService.getListCartService(userId));
     }
 
     setIncreaseQuantity = async (req: Request, res: Response) => {
+        const listprops: ListProps = req.body;
+        const { userId } = listprops
         await productService.setIncreaseQuantityService(req.params.idCart);
-        res.json(await productService.getListCartService());
+        res.json(await productService.getListCartService(userId));
     }
 
     deleteCartItems = async (req: Request, res: Response) => {
+        const listprops: ListProps = req.body;
+        const { userId } = listprops
         await productService.deleteCartItemsService(req.params.idCart);
-        res.json(await productService.getListCartService());
+        res.json(await productService.getListCartService(userId));
     }
 
     setOrderInformation = async (req: Request, res: Response) => {

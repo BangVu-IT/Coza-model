@@ -11,9 +11,7 @@ const jwt = require("jsonwebtoken");
 
 class ProductService {    
 
-    getProductListService = async (req: Request, res: Response) => {
-        const listprops: ListProps = req.body;
-        const { page, search, pagesize } = listprops;
+    getProductListService = async (page: number, search: string, pagesize: number) => {        
         let products, pageNumber;
         if (search) {
             products = await pool.query(`SELECT * FROM product WHERE name ILIKE '${search}%' limit ${pagesize} offset (${page} * ${pagesize}) - ${pagesize}`);
@@ -40,7 +38,7 @@ class ProductService {
             arrPageNumber.push(count)
         }
 
-        res.json({ arrProduct, arrPageNumber });
+        return({ arrProduct, arrPageNumber });
     }
 
     addProductService = async (req: Request, res: Response) => {
@@ -57,8 +55,8 @@ class ProductService {
         VALUES('${newProduct.id}', '${newProduct.image}', '${newProduct.name}', '${newProduct.brand}', ${newProduct.price})`);
     }
 
-    removeProductService = async (req: Request, res: Response) => {
-        await pool.query(`DELETE FROM public.product WHERE id = '${req.params.idProduct}'`);
+    removeProductService = async (idProduct: string) => {
+        await pool.query(`DELETE FROM public.product WHERE id = '${idProduct}'`);
     }
 
     updateProductService = async (req: Request, res: Response) => {
@@ -76,12 +74,12 @@ class ProductService {
         res.json(product.rows[0]);
     }
 
-    getListCartService = async () => {
+    getListCartService = async (userId: string) => {        
         const cartProduct = await pool.query(`select order_product.order_id, order_product.cart_id, product.image, product."name",
         product.brand, product.price, order_product.quantity
         from order_product join 
         product on order_product.id = product.id join
-        "order" on order_product.order_id = "order".order_id where "order".user_id = '1' and "order".istemporary = false
+        "order" on order_product.order_id = "order".order_id where "order".user_id = '${userId}' and "order".istemporary = false
         order by order_product.cart_id`);
         return cartProduct.rows;
     }
@@ -135,8 +133,7 @@ class ProductService {
     }
 
     deleteCartItemsService = async (id: string) => {
-        await pool.query(`DELETE FROM public.order_product
-        WHERE cart_id='${id}'`);
+        await pool.query(`DELETE FROM public.order_product WHERE cart_id='${id}'`);        
     }
 
     setOrderInformationService = async (req: Request, res: Response) => {
@@ -242,7 +239,7 @@ class ProductService {
         const checkAccount = await pool.query(`select user_id from "user" where "userName" = '${userName}' and "passWord" = '${passWord}'`);
 
         if (checkAccount.rows[0] !== undefined) {
-            const token = jwt.sign(checkAccount.rows[0], process.env.SECRET_TOKEN, { expiresIn: '30s' });        
+            const token = jwt.sign(checkAccount.rows[0], process.env.SECRET_TOKEN, { expiresIn: '600s' });
             res.header("Authorization", token).send(token);
         } else {
             res.status(401).send();
