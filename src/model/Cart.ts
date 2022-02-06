@@ -1,9 +1,11 @@
-export interface Cart {
-    cart_id: string;
-    order_id: string;
+export interface sdadadad {
+    cartId: string;
+    orderId: string;
+    idProductItem: string;
     image: string;
     name: string;
-    brand: string;
-    price: number;
+    colorId: string;
+    sizeId: string;
     quantity: number;
+    price: number;
 }
