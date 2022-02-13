@@ -15,6 +15,18 @@ class OrderController {
         return res.json(await orderService.getListOrderService(userId, page, rowsPerPage));
     }
 
+    getListOrderManage = async (req: Request, res: Response) => {
+        const listProps: ListProps = req.body;
+        const { page, rowsPerPage } = listProps;
+        return res.json(await orderService.getListOrderManageService(page, rowsPerPage));
+    }
+
+    updateOrderStatus = async (req: Request, res: Response) => {
+        const listProps: ListProps = req.body;
+        const { orderId, orderStatus } = listProps;
+        return res.json(await orderService.updateOrderStatusService(orderId, orderStatus));
+    }
+
 }
 
 export const orderController = new OrderController();

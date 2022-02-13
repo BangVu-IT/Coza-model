@@ -58,7 +58,11 @@ router.delete('/delete/cart/:cartId', verify, cartController.deleteCartItems)
 // receive order information
 router.post('/checkout/delivery', verify, orderController.setOrderInformation)
 // get order list
+router.post('/order-list', orderController.getListOrderManage)
+// get list of user orders
 router.post('/orders', verify, orderController.getListOrder)
+// update order status
+router.post('/order/update', orderController.updateOrderStatus)
 
 
 // user login

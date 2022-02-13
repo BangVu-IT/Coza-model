@@ -1,8 +1,7 @@
 import express, { Request, Response } from 'express';
-import { ListProps } from '../model/ListProps';
+import { OrderProductCart } from '../model/ListProps';
 import { OrderProduct } from '../model/OrderProduct';
 import { cartService } from '../service/CartService';
-import { userService } from '../service/UserService';
 
 const { v4: uuidv4 } = require('uuid');
 
@@ -13,14 +12,16 @@ class CartController {
     }
 
     addProductToCart = async (req: Request, res: Response) => {        
-        const listProps: OrderProduct = req.body.cartProduct;
-        const { orderId, idProductItem, image, name, colorId, sizeId, price, quantity } = listProps
+        const listProps: OrderProductCart = req.body.cartProduct;
+        const { orderId, idProductItem, image, name, brand, gender, colorId, sizeId, price, quantity } = listProps
         let newCartProduct: OrderProduct = {
             cartId: uuidv4(),
             orderId: orderId,
             idProductItem: idProductItem,
             image: image,
             name: name,
+            brand: brand,
+            gender: gender,
             colorId: colorId,
             sizeId: sizeId,
             price: price,

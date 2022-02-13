@@ -17,6 +17,18 @@ export interface ListProps {
     dataOrder: Order;
     userName: string;
     passWord: string;
+    page: number;
+    rowsPerPage: number;
+    orderId: string;
+    orderStatus: string;
+}
+
+export interface ProductLineBody {    
+    imageProduct: string;
+    name: string;    
+    brandId: string;
+    gender: string;
+    sold: number;
 }
 
 export interface ProductList {
@@ -30,11 +42,13 @@ export interface ProductList {
     sortPrice: string;
 }
 
-export interface OrderProduct {
+export interface OrderProductCart {
     orderId: string;
     idProductItem: string;
     image: string;
     name: string;
+    brand: string;
+    gender: string;
     colorId: string;
     sizeId: string;      
     price: number;

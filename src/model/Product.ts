@@ -19,6 +19,7 @@ export interface ProductLine {
     gender: string;
     createdAt: string;
     updatedAt: string;
+    sold: number;
 }
 
 export interface ProductWithDetail extends ProductLine {

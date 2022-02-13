@@ -1,8 +1,6 @@
 import express, { Request, Response } from 'express';
-import { QueryResult } from 'pg';
 import { pool } from "../connect-db/Client";
 import { ListProps } from "../model/ListProps";
-import { OrderWithDetail } from '../model/Order';
 import { Product, ProductLine, ProductWithDetail } from "../model/Product";
 import { User } from '../model/User';
 
@@ -12,7 +10,7 @@ const jwt = require("jsonwebtoken");
 class ProductService {
 
     getProductListService = async (page: number, inputSearch: string, rowsPerPage: number, category: string, priceValue1: number, priceValue2: number, gender: string, sortPrice: string) => {
-        let productsList, pageNumber, categoryProduct, genderProduct, sortPriceProduct;
+        let productsList, pageNumber, categoryProduct, genderProduct, sortPriceProduct, sortPriceProduct2;
 
         if (category) {
             categoryProduct = `and pl2.brand_id = '${category}'`
@@ -21,15 +19,21 @@ class ProductService {
         }
 
         if (sortPrice) {
-            sortPriceProduct = `p.price ${sortPrice},`
+            if (sortPrice.includes('price') == true) {
+                sortPriceProduct = sortPrice.replace("min(p2.price)", "p.price")
+            } else if (sortPrice.includes('sold') == true) {
+                sortPriceProduct = sortPrice.replace("pl2.sold", "pl.sold")
+            }
+
         } else {
+            sortPrice = "";
             sortPriceProduct = '';
         }
 
         if (gender) {
-            genderProduct = `and pl2.gender = '${gender}'`            
+            genderProduct = `and pl2.gender = '${gender}'`
         } else {
-            genderProduct = '';            
+            genderProduct = '';
         }
 
         if (inputSearch) {
@@ -38,7 +42,7 @@ class ProductService {
             join product_size ps on p.size_id = ps.size_id where pl.product_id in
             (select pl2.product_id from product_line pl2 join brand b2 on pl2.brand_id
             = b2.brand_id join product p2 on pl2.product_id = p2.product_id
-            where pl2."name" ILIKE '${inputSearch}%' ${categoryProduct} and p2.price between ${priceValue1} and ${priceValue2} ${genderProduct} group by pl2.product_id order by p.price asc limit ${rowsPerPage} offset (${page} * ${rowsPerPage}) - ${rowsPerPage}) order by ${sortPriceProduct} pl."created_At" desc`);
+            where pl2."name" ILIKE '${inputSearch}%' ${categoryProduct} and p2.price between ${priceValue1} and ${priceValue2} ${genderProduct} group by pl2.product_id order by ${sortPrice} pl2."created_At" desc limit ${rowsPerPage} offset (${page} * ${rowsPerPage}) - ${rowsPerPage}) order by ${sortPriceProduct} pl."created_At" desc`);
 
             pageNumber = await pool.query(`SELECT count(DISTINCT pl2.product_id) FROM product_line pl2 join product p on pl2.product_id = p.product_id
             join brand b on pl2.brand_id = b.brand_id where pl2."name" ILIKE '${inputSearch}%' ${categoryProduct} ${genderProduct} and p.price between ${priceValue1} and ${priceValue2}`);
@@ -49,7 +53,7 @@ class ProductService {
             join product_size ps on p.size_id = ps.size_id where pl.product_id in
             (select pl2.product_id from product_line pl2 join brand b2 on pl2.brand_id
             = b2.brand_id join product p2 on pl2.product_id = p2.product_id
-            where p2.price between ${priceValue1} and ${priceValue2} ${categoryProduct} ${genderProduct} group by pl2.product_id limit ${rowsPerPage} offset (${page} * ${rowsPerPage}) - ${rowsPerPage})
+            where p2.price between ${priceValue1} and ${priceValue2} ${categoryProduct} ${genderProduct} group by pl2.product_id order by ${sortPrice} pl2."created_At" desc limit ${rowsPerPage} offset (${page} * ${rowsPerPage}) - ${rowsPerPage})
             order by ${sortPriceProduct} pl."created_At" desc`);
 
             pageNumber = await pool.query(`SELECT count(DISTINCT pl2.product_id) FROM product_line pl2 join product p on pl2.product_id = p.product_id
@@ -75,6 +79,7 @@ class ProductService {
                 gender: "",
                 createdAt: "",
                 updatedAt: "",
+                sold: 0,
                 productItem: []
             }
 
@@ -87,6 +92,7 @@ class ProductService {
                         product.gender = productsItem.gender,
                         product.createdAt = productsItem.created_At,
                         product.updatedAt = productsItem.updated_At,
+                        product.sold = productsItem.sold,
                         product.productItem.push({
                             productItemId: productsItem.product_item_id,
                             productId: productsItem.product_id,
@@ -123,8 +129,8 @@ class ProductService {
 
     addProductService = async (newProduct: any) => {
         await pool.query(`INSERT INTO public.product_line
-        (product_id, image_product, "name", brand_id, gender, "created_At", "updated_At")
-        VALUES('${newProduct.id}', '${newProduct.imageProduct}', '${newProduct.name}', '${newProduct.brand}', '${newProduct.gender}', '${newProduct.createdAt}', '${newProduct.updatedAt}')`);
+        (product_id, image_product, "name", brand_id, gender, "created_At", "updated_At", sold)
+        VALUES('${newProduct.id}', '${newProduct.imageProduct}', '${newProduct.name}', '${newProduct.brand}', '${newProduct.gender}', '${newProduct.createdAt}', '${newProduct.updatedAt}', ${newProduct.sold})`);
 
         await pool.query(`INSERT INTO public.product
         (product_item_id, product_id, color_id, size_id, price, quantity, image)
@@ -146,21 +152,10 @@ class ProductService {
         await pool.query(`DELETE FROM public.product WHERE product_id='${req.params.idProduct}'`);
     }
 
-    addProductItemService = async (newProduct: Product) => {
-        await pool.query(`Do
-        $$
-        begin  		
-            if exists(select * from product where color_id = '${newProduct.colorId}' and size_id = '${newProduct.sizeId}' and product_id = '${newProduct.productId}') then
-                UPDATE public.product
-                SET price=${newProduct.price}, quantity=quantity + ${newProduct.quantity}, image='${newProduct.image}'
-                WHERE product_id='${newProduct.productId}' and color_id = '${newProduct.colorId}' and size_id = '${newProduct.sizeId}';
-            else
-                INSERT INTO public.product
-                (product_item_id, product_id, color_id, size_id, price, quantity, image)
-                VALUES('${newProduct.productItemId}', '${newProduct.productId}', '${newProduct.colorId}', '${newProduct.sizeId}', ${newProduct.price}, ${newProduct.quantity}, '${newProduct.image}');
-            end if;
-        end;
-        $$`);
+    addProductItemService = async (newProduct: Product) => {        
+        await pool.query(`INSERT INTO public.product
+        (product_item_id, product_id, color_id, size_id, price, quantity, image)
+        VALUES('${newProduct.productItemId}', '${newProduct.productId}', '${newProduct.colorId}', '${newProduct.sizeId}', ${newProduct.price}, ${newProduct.quantity}, '${newProduct.image}');`);
     }
 
     updateProductItemService = async (req: Request, res: Response) => {
@@ -217,6 +212,7 @@ class ProductService {
                 gender: "",
                 createdAt: "",
                 updatedAt: "",
+                sold: 0,
                 productItem: []
             }
 
@@ -229,6 +225,7 @@ class ProductService {
                         product.gender = productsItem.gender,
                         product.createdAt = productsItem.created_At,
                         product.updatedAt = productsItem.updated_At,
+                        product.sold = productsItem.sold,
                         product.productItem.push({
                             productItemId: productsItem.product_item_id,
                             productId: productsItem.product_id,
