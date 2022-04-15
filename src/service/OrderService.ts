@@ -4,6 +4,8 @@ import { pool } from '../connect-db/Client';
 import { UserOrderInfo } from '../model/ListProps';
 import { OrderWithDetail } from '../model/Order';
 
+const nodemailer = require('nodemailer');
+
 class OrderService {
 
     setOrderInformationService = async (userOrderInfo: UserOrderInfo) => {
@@ -11,7 +13,36 @@ class OrderService {
         await pool.query(`UPDATE public."order"
         SET "created_At"='${date.toLocaleString('en-GB')}', is_temporary=true, full_name='${userOrderInfo.fullName}', phone_number='${userOrderInfo.phoneNumber}',
         email='${userOrderInfo.email}', address='${userOrderInfo.address}', post_code='${userOrderInfo.postCode}', order_status='${userOrderInfo.orderStatus}'
-        WHERE order_id='${userOrderInfo.orderId}'`);
+        WHERE order_id='${userOrderInfo.orderId}'`).then(()=>{
+            var transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                  user: 'bangvu16102001@gmail.com',
+                  pass: 'khongcanbiet0808'
+                }
+              });
+              
+              var mailOptions = {
+                from: 'bangvu16102001@gmail.com',
+                to: 'bangvvpk01973@fpt.edu.vn',
+                subject: 'Order confirmation',
+                text: `Hi ${userOrderInfo.fullName},
+                 \nYour order ${userOrderInfo.orderId} placed on ${date.toLocaleString('en-GB')} has been confirmed by CozaStore. 
+                 \nCozaStore will notify the delivery time as soon as the shipping partner comes to pick up the goods. 
+                 \nPlease check your email regularly. 
+                 \nDelivery address:
+                 \nPhone number: ${userOrderInfo.phoneNumber}, email: ${userOrderInfo.email}, address: ${userOrderInfo.address}, postcode: ${userOrderInfo.postCode}`,
+              };
+              
+              transporter.sendMail(mailOptions, function(error: Error, info: any){
+                if (error) {
+                  console.log(error);
+                } else {
+                  console.log('Email sent: ' + info.response);
+                }
+              });
+        });
+        return;
     }
 
     getListOrderService = async (userId: string, page: number, rowsPerPage: number) => {

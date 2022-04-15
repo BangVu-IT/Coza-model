@@ -10,6 +10,12 @@ export interface Product {
     price: number;
     quantity: number;
 }
+
+export interface Brand {
+    brandId: string;
+    brand: string;
+}
+
 export interface ProductLine {
     id: string;
     imageProduct: string;

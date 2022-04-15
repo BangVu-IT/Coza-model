@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import { pool } from "../connect-db/Client";
 import { ListProps } from "../model/ListProps";
-import { Product, ProductLine, ProductWithDetail } from "../model/Product";
+import { Brand, Product, ProductLine, ProductWithDetail } from "../model/Product";
 import { User } from '../model/User';
 
 const { v4: uuidv4 } = require('uuid');
@@ -117,6 +117,18 @@ class ProductService {
         return brandList.rows;
     }
 
+    addProductBrandService = async (brand: Brand) => {
+        await pool.query(`INSERT INTO public.brand (brand_id, brand) VALUES('${brand.brandId}', '${brand.brand}')`);
+    }
+
+    updateProductBrandService = async (brand: Brand) => {
+        await pool.query(`UPDATE public.brand SET brand='${brand.brand}' WHERE brand_id='${brand.brandId}'`);
+    }
+
+    deleteProductBrandService = async (id: string) => {
+        await pool.query(`DELETE FROM public.brand WHERE brand_id='${id}'`);
+    }
+
     getProductColorListService = async () => {
         const ColorList = await pool.query(`select * from product_color`);
         return ColorList.rows;
@@ -140,8 +152,8 @@ class ProductService {
     updateProductService = async (req: Request, res: Response) => {
         let id = req.params.idProduct;
         let date = new Date(new Date().getTime());
-        const listprops: ListProps = req.body.product;
-        const { imageProduct, name, brandId, gender } = listprops;
+        const listProps: ListProps = req.body.product;
+        const { imageProduct, name, brandId, gender } = listProps;
         await pool.query(`UPDATE public.product_line
         SET image_product='${imageProduct}', "name"='${name}', brand_id='${brandId}', gender='${gender}', "updated_At"='${date.toLocaleString('en-GB')}'
         WHERE product_id='${id}'`);
@@ -152,7 +164,7 @@ class ProductService {
         await pool.query(`DELETE FROM public.product WHERE product_id='${req.params.idProduct}'`);
     }
 
-    addProductItemService = async (newProduct: Product) => {        
+    addProductItemService = async (newProduct: Product) => {
         await pool.query(`INSERT INTO public.product
         (product_item_id, product_id, color_id, size_id, price, quantity, image)
         VALUES('${newProduct.productItemId}', '${newProduct.productId}', '${newProduct.colorId}', '${newProduct.sizeId}', ${newProduct.price}, ${newProduct.quantity}, '${newProduct.image}');`);

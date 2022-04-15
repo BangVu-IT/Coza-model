@@ -5,6 +5,5 @@ export interface User {
     email: string;
     address: string;
     postcode: string;
-    // userName: string;
-    // passWord: string;
+    role: string;
 }

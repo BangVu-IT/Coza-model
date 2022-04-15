@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 import { ListProps, ProductLineBody, ProductList } from '../model/ListProps';
-import { Product, ProductLine } from '../model/Product';
+import { Brand, Product, ProductLine } from '../model/Product';
 import { productService } from '../service/ProductService';
 
 const jwt = require("jsonwebtoken");
@@ -14,8 +14,28 @@ class ProductController {
         return res.json(await productService.getProductListService(page, inputSearch, rowsPerPage, category, priceValue1, priceValue2, gender, sortPrice));
     }
 
-    getProductBrandList = async (req: Request, res: Response) => {        
+    getProductBrandList = async (req: Request, res: Response) => {
         return res.json(await productService.getProductBrandListService());
+    }
+
+    addBrandProduct = async (req: Request, res: Response) => {
+        const newBrand = {
+            brandId: uuidv4(),
+            brand: String(req.body.brand.brand)
+        }
+        return res.json(await productService.addProductBrandService(newBrand));
+    }
+
+    updateBrandProduct = async (req: Request, res: Response) => {
+        const brandUpdate = {
+            brandId: req.body.brand.brand_id,
+            brand: req.body.brand.brand
+        }
+        return res.json(await productService.updateProductBrandService(brandUpdate));
+    }
+
+    deleteBrandProduct = async (req: Request, res: Response) => {        
+        return res.json(await productService.deleteProductBrandService(req.params.id));
     }
 
     getProductColorList = async (req: Request, res: Response) => {        

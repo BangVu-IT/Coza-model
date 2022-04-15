@@ -1,7 +1,7 @@
 import Order from "./Order";
 
 export interface ListProps {
-    userId: string;
+    userId: string;    
     imageProduct: string;
     name: string;
     brand: string;
@@ -15,8 +15,10 @@ export interface ListProps {
     price: number;
     quantity: number;
     dataOrder: Order;
+    fullName: string;
     userName: string;
     passWord: string;
+    role: string;
     page: number;
     rowsPerPage: number;
     orderId: string;
